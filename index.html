@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stumble Guys - Super Water Slide</title>
+    <!-- Google Fonts for Stumble Guys style chunky fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Paytone+One&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #38bdf8;
+            font-family: 'Lilita One', 'Paytone One', cursive, sans-serif;
+        }
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* HUD OVERLAYS */
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: none;
+        }
+
+        /* Top Left: Objective */
+        .hud-objective {
+            position: absolute;
+            top: 18px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .hud-tab {
+            background: #2dd4bf;
+            color: #0f172a;
+            padding: 3px 18px;
+            border-radius: 12px 12px 0 0;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+            display: inline-block;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+            text-transform: capitalize;
+        }
+        .hud-card {
+            background: #ffffff;
+            color: #1e293b;
+            padding: 8px 24px;
+            border-radius: 0 16px 16px 16px;
+            font-size: 26px;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.25);
+            border: 3px solid #ffffff;
+        }
+        .palm-icon {
+            font-size: 28px;
+            line-height: 1;
+        }
+
+        .hud-ping {
+            position: absolute;
+            top: 92px;
+            left: 24px;
+            color: #ea580c;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        /* Top Right: Qualified */
+        .hud-qualified {
+            position: absolute;
+            top: 18px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        .hud-tab-right {
+            background: #38bdf8;
+            color: #0284c7;
+            padding: 4px 22px;
+            border-radius: 14px 14px 0 0;
+            font-size: 15px;
+            font-weight: 900;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .hud-card-right {
+            background: #ffffff;
+            color: #0f172a;
+            padding: 4px 28px;
+            border-radius: 16px 0 16px 16px;
+            font-size: 38px;
+            letter-spacing: 1px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.25);
+            border: 3px solid #ffffff;
+        }
+
+        /* Position badge */
+        .hud-position {
+            position: absolute;
+            top: 95px;
+            right: 24px;
+            background: rgba(15, 23, 42, 0.65);
+            color: #facc15;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 18px;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            border: 1px solid rgba(250, 204, 21, 0.4);
+        }
+
+        /* Action Buttons Right Side */
+        .hud-emotes {
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: auto;
+        }
+        .emote-slot {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+        .emote-slot:active {
+            transform: scale(0.92);
+        }
+        .emote-key {
+            background: rgba(0, 0, 0, 0.5);
+            color: #fff;
+            width: 22px;
+            height: 22px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: bold;
+            border: 1px solid rgba(255,255,255,0.4);
+        }
+        .emote-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: rgba(30, 41, 59, 0.7);
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            backdrop-filter: blur(4px);
+        }
+
+        /* Dive / Jump Button Bottom Right */
+        .hud-dive-btn {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #38bdf8 20%, #0284c7 90%);
+            border: 4px solid #ffffff;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4), inset 0 4px 6px rgba(255,255,255,0.6);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            cursor: pointer;
+            transition: transform 0.08s ease, filter 0.1s ease;
+        }
+        .hud-dive-btn:active {
+            transform: scale(0.92);
+            filter: brightness(1.2);
+        }
+        .dive-label {
+            color: #ffffff;
+            font-size: 16px;
+            text-transform: uppercase;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .dive-arrow {
+            width: 0; 
+            height: 0; 
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-bottom: 18px solid #ffffff;
+            margin-top: 3px;
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
+        }
+
+        /* Speedometer bar bottom center */
+        .hud-speed {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 220px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+        .speed-bar-bg {
+            width: 100%;
+            height: 12px;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 10px;
+            border: 2px solid #ffffff;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .speed-bar-fill {
+            height: 100%;
+            width: 40%;
+            background: linear-gradient(90deg, #facc15, #f97316, #ef4444);
+            border-radius: 8px;
+            transition: width 0.1s ease;
+        }
+        .controls-hint {
+            color: #ffffff;
+            font-size: 14px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            letter-spacing: 0.5px;
+        }
+
+        /* SCREENS (Start, Finish, Countdown) */
+        .screen-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(8px);
+        }
+
+        .title-box {
+            background: linear-gradient(180deg, #ec4899 0%, #db2777 100%);
+            border: 6px solid #ffffff;
+            padding: 20px 48px;
+            border-radius: 28px;
+            text-align: center;
+            box-shadow: 0 16px 36px rgba(0,0,0,0.4), inset 0 4px 6px rgba(255,255,255,0.6);
+            transform: rotate(-2deg);
+            margin-bottom: 24px;
+            animation: bounceTitle 2s infinite ease-in-out alternate;
+        }
+        @keyframes bounceTitle {
+            0% { transform: rotate(-2deg) scale(1); }
+            100% { transform: rotate(1deg) scale(1.03); }
+        }
+        .title-text-main {
+            font-size: 56px;
+            color: #fef08a;
+            text-shadow: 4px 4px 0px #b91c1c, -2px -2px 0 #b91c1c, 2px -2px 0 #b91c1c, -2px 2px 0 #b91c1c;
+            line-height: 1;
+            letter-spacing: 1px;
+        }
+        .title-text-sub {
+            font-size: 26px;
+            color: #ffffff;
+            text-shadow: 2px 2px 0px #831843;
+            letter-spacing: 4px;
+            margin-top: 6px;
+        }
+
+        .btn-play {
+            background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+            border: 5px solid #ffffff;
+            color: #ffffff;
+            font-family: inherit;
+            font-size: 34px;
+            padding: 14px 60px;
+            border-radius: 40px;
+            cursor: pointer;
+            box-shadow: 0 10px 24px rgba(22, 163, 74, 0.6), inset 0 4px 4px rgba(255,255,255,0.5);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: transform 0.1s ease, filter 0.1s ease;
+        }
+        .btn-play:hover {
+            transform: scale(1.06);
+            filter: brightness(1.1);
+        }
+        .btn-play:active {
+            transform: scale(0.96);
+        }
+
+        .guide-box {
+            margin-top: 20px;
+            background: rgba(255, 255, 255, 0.92);
+            padding: 12px 28px;
+            border-radius: 16px;
+            display: flex;
+            gap: 24px;
+            font-size: 16px;
+            color: #334155;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+        .guide-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .key-badge {
+            background: #e2e8f0;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-weight: 900;
+            border: 2px solid #cbd5e1;
+            color: #0f172a;
+        }
+
+        /* Countdown 3, 2, 1, GO */
+        #countdown-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 40;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+        .countdown-num {
+            font-size: 130px;
+            color: #facc15;
+            text-shadow: 6px 6px 0px #b45309, 0 0 30px rgba(250, 204, 21, 0.8);
+            transform: scale(0.2);
+            opacity: 0;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+        }
+        .countdown-num.pop {
+            transform: scale(1.2);
+            opacity: 1;
+        }
+
+        /* Result Modal */
+        #finish-screen {
+            display: none;
+        }
+        .result-card {
+            background: #ffffff;
+            border: 6px solid #38bdf8;
+            border-radius: 28px;
+            padding: 30px 48px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            max-width: 440px;
+            width: 90%;
+        }
+        .result-title {
+            font-size: 46px;
+            margin-bottom: 8px;
+        }
+        .qualified-text {
+            color: #16a34a;
+            text-shadow: 2px 2px 0px #bbf7d0;
+        }
+        .eliminated-text {
+            color: #dc2626;
+            text-shadow: 2px 2px 0px #fecaca;
+        }
+        .result-rank {
+            font-size: 26px;
+            color: #475569;
+            margin-bottom: 20px;
+        }
+        .result-stars {
+            font-size: 36px;
+            margin-bottom: 24px;
+        }
+
+        /* Emote Floaters */
+        .emote-bubble {
+            position: absolute;
+            font-size: 36px;
+            pointer-events: none;
+            animation: floatUp 1.2s forwards ease-out;
+            z-index: 20;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            30% { transform: translateY(-30px) scale(1.2); opacity: 1; }
+            100% { transform: translateY(-80px) scale(0.9); opacity: 0; }
+        }
+
+        @media (max-width: 600px) {
+            .hud-card { font-size: 19px; padding: 6px 14px; }
+            .hud-card-right { font-size: 28px; padding: 4px 18px; }
+            .hud-ping { top: 76px; font-size: 15px; }
+            .hud-position { top: 76px; font-size: 15px; }
+            .hud-emotes { display: none; }
+            .title-text-main { font-size: 40px; }
+            .title-text-sub { font-size: 20px; }
+            .btn-play { font-size: 26px; padding: 12px 40px; }
+            .guide-box { flex-direction: column; gap: 8px; }
+            .hud-dive-btn { width: 80px; height: 80px; bottom: 20px; right: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <!-- HUD -->
+    <div id="hud">
+        <!-- Objective -->
+        <div class="hud-objective">
+            <div class="hud-tab">Objective</div>
+            <div class="hud-card">
+                <span>RACE TO FINISH!</span>
+                <span class="palm-icon">🌴</span>
+            </div>
+        </div>
+
+        <div class="hud-ping">Ping 10</div>
+
+        <!-- Qualified -->
+        <div class="hud-qualified">
+            <div class="hud-tab-right">Qualified</div>
+            <div class="hud-card-right" id="qualified-display">0/16</div>
+        </div>
+
+        <div class="hud-position" id="position-display">1st / 16</div>
+
+        <!-- Emotes Hotbar (Stumble Guys style) -->
+        <div class="hud-emotes">
+            <div class="emote-slot" onclick="triggerEmote('❤️')">
+                <span class="emote-key">1</span>
+                <div class="emote-btn" style="border-color: #f43f5e;">💖</div>
+            </div>
+            <div class="emote-slot" onclick="triggerEmote('🤗')">
+                <span class="emote-key">2</span>
+                <div class="emote-btn" style="border-color: #38bdf8;">🫂</div>
+            </div>
+            <div class="emote-slot" onclick="triggerEmote('🥊')">
+                <span class="emote-key">3</span>
+                <div class="emote-btn" style="border-color: #ea580c;">🥊</div>
+            </div>
+            <div class="emote-slot" onclick="triggerEmote('⚽')">
+                <span class="emote-key">4</span>
+                <div class="emote-btn" style="border-color: #10b981;">⚽</div>
+            </div>
+        </div>
+
+        <!-- Speed meter & hints -->
+        <div class="hud-speed">
+            <div class="speed-bar-bg">
+                <div class="speed-bar-fill" id="speed-bar"></div>
+            </div>
+            <div class="controls-hint">STEER: [A/D] or [◄/►] • DIVE: [SPACE]</div>
+        </div>
+
+        <!-- Mobile Dive Button -->
+        <div class="hud-dive-btn" id="dive-btn">
+            <div class="dive-label">Space</div>
+            <div class="dive-arrow"></div>
+        </div>
+    </div>
+
+    <!-- Start Screen -->
+    <div class="screen-overlay" id="start-screen">
+        <div class="title-box">
+            <div class="title-text-main">STUMBLE SLIDE</div>
+            <div class="title-text-sub">SUPER WATER RACE</div>
+        </div>
+        <button class="btn-play" id="btn-start">PLAY</button>
+        <div class="guide-box">
+            <div class="guide-item"><span class="key-badge">A / D</span> or <span class="key-badge">◄ / ►</span> Steer</div>
+            <div class="guide-item"><span class="key-badge">SPACE</span> Belly Dive / Boost</div>
+            <div class="guide-item">Top 16 Qualify! 🏆</div>
+        </div>
+    </div>
+
+    <!-- 3-2-1-GO Overlay -->
+    <div id="countdown-overlay">
+        <div class="countdown-num" id="countdown-text">3</div>
+    </div>
+
+    <!-- Finish / Result Screen -->
+    <div class="screen-overlay" id="finish-screen">
+        <div class="result-card">
+            <div class="result-title qualified-text" id="result-status">QUALIFIED!</div>
+            <div class="result-rank" id="result-detail">You finished 1st!</div>
+            <div class="result-stars">⭐ 👑 ⭐</div>
+            <button class="btn-play" id="btn-restart">RACE AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+        /* --- Web Audio System (Synthesized effects & cheerful arcade music) --- */
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+                this.musicTimer = null;
+                this.slideGain = null;
+                this.slideNoise = null;
+            }
+            init() {
+                if (this.ctx) return;
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioCtx();
+                this.setupSlideWhoosh();
+            }
+            setupSlideWhoosh() {
+                if (!this.ctx) return;
+                const bufferSize = this.ctx.sampleRate * 2;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+                noise.loop = true;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.value = 650;
+                filter.Q.value = 2.0;
+
+                const gain = this.ctx.createGain();
+                gain.gain.value = 0.0;
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                noise.start();
+                this.slideGain = gain;
+                this.slideNoise = noise;
+            }
+            setSlideSpeed(vol) {
+                if (!this.slideGain) return;
+                this.slideGain.gain.setTargetAtTime(Math.min(vol * 0.12, 0.15), this.ctx.currentTime, 0.05);
+            }
+            playDive() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(540, this.ctx.currentTime + 0.18);
+                gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.28);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.3);
+            }
+            playBoing() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(320, this.ctx.currentTime);
+                osc.frequency.
